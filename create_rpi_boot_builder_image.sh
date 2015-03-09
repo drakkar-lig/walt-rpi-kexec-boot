@@ -61,10 +61,10 @@ RUN mkdir -p $LOC_INITRD/initrd_fs
 WORKDIR $LOC_INITRD/initrd_fs
 ADD union_init.sh $LOC_INITRD/initrd_fs/init
 RUN chmod +x ./init
-RUN mkdir -p ./{bin,proc,tmp/inmemory,tmp/nfs}
+RUN mkdir -p bin proc tmp/inmemory tmp/nfs
 WORKDIR $LOC_INITRD/initrd_fs/bin
 RUN cp $LOC_BUILDROOT/output/busybox .
-RUN for cmd in {cat,chroot,grep,mkdir,mount,sh,tr}; do echo ln -s busybox $cmd; done
+RUN for cmd in cat chroot grep mkdir mount sh tr; do ln -s busybox \$cmd; done
 WORKDIR $LOC_INITRD/initrd_fs
 RUN find . | cpio -H newc -o | gzip > ../initrd.cpio.gz
 
