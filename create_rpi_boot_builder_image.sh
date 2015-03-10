@@ -97,8 +97,9 @@ RUN echo "initramfs initramfs.cpio.gz 0x00a00000" >> rpi-firmware/config.txt
 # the repository is big because it's made of (versioned!) binary files.
 # although it's on github, we use svn instead of git, because it allows us to download only a 
 # subdirectory of it.
-# (also, we don't need the precompiled kernel, we can remove it)
-RUN svn checkout $SVN_RPI_FIRMWARE_BOOT_FILES ./boot_files && rm -f ./boot_files/kernel.img
+# (also, we don't need some of the files, we can remove them)
+RUN svn checkout $SVN_RPI_FIRMWARE_BOOT_FILES ./boot_files && \
+    rm -f ./boot_files/kernel*.img ./boot_files/start_*.elf ./boot_files/fixup_*.dat
 
 # install entry point
 # -------------------
