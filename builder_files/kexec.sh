@@ -26,8 +26,6 @@ busybox udhcpc -s /root/retrieve-dhcp-options.sh
 
 NFS_SERVER_HEX=$(cat /root/env.txt | grep opt138 | cut -d"'" -f2)
 NFS_SERVER=$(/root/hex2ascii.sh $NFS_SERVER_HEX)
-NFS_KERNEL_PATH_HEX=$(cat /root/env.txt | grep opt139 | cut -d"'" -f2)
-NFS_KERNEL_PATH=$(/root/hex2ascii.sh $NFS_KERNEL_PATH_HEX)
 NFS_FS_PATH_HEX=$(cat /root/env.txt | grep opt140 | cut -d"'" -f2)
 NFS_FS_PATH=$(/root/hex2ascii.sh $NFS_FS_PATH_HEX)
 
@@ -37,13 +35,10 @@ ARGS="$CMDLINE nfs_server=$NFS_SERVER nfs_fs_path=$NFS_FS_PATH"
 echo "Mounting NFS" 
 NFS_MOUNT=/nfs_mount
 mkdir $NFS_MOUNT
-mount $NFS_SERVER:$NFS_KERNEL_PATH $NFS_MOUNT
+mount $NFS_SERVER:$NFS_FS_PATH $NFS_MOUNT
 
-# Find kernel to load by looking at file kernel_to_load.txt on NFS server
-eval $(cat $NFS_MOUNT/kernel_to_load.txt | grep KERNEL)
-
+# The kernel is at path /kernel of the filesystem.
 echo "Running kexec ..."
-echo "Loading KERNEL = $KERNEL" 
-kexec -l $NFS_MOUNT/$KERNEL --initrd=/root/initrd.cpio.gz --append="$ARGS" 
+kexec -l $NFS_MOUNT/kernel --initrd=/root/initrd.cpio.gz --append="$ARGS"
 kexec -e
 
