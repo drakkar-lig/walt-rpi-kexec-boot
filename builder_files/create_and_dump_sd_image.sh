@@ -1,11 +1,23 @@
 #!/bin/bash
 
-IMAGE_PARTITION_DEVICE="/dev/mapper/loop0p1"
 TMP_DIR=$(mktemp -d)
 IMAGE_DIR=$TMP_DIR/img_dir
 IMAGE_FILE=$TMP_DIR/img.dd
 IMAGE_CONTENT=$TMP_DIR/content
 mkdir $IMAGE_DIR $IMAGE_CONTENT
+
+part1()
+{
+    echo "$(echo -n $1 | sed -e 's/loop/mapper\/loop/')p1"
+}
+
+wait_for_device()
+{
+    while [ ! -e $1 ]
+    do
+        sleep 0.2
+    done
+}
 
 {
     # select the files we want in the image
@@ -35,15 +47,21 @@ t
 b
 w
 EOF
+    # associate free loop device
+    loop_dev=$(losetup -f)
+    losetup $loop_dev $IMAGE_FILE
 
     # let the kernel detect the new partition and create the device
-    kpartx -a $IMAGE_FILE
+    kpartx -l $loop_dev >&2
+    kpartx -a $loop_dev
 
     # format the partition
-    mkfs -t vfat $IMAGE_PARTITION_DEVICE
+    part_dev="$(part1 $loop_dev)"
+    wait_for_device $part_dev
+    mkfs -t vfat $part_dev
 
     # mount the partition
-    mount $IMAGE_PARTITION_DEVICE $IMAGE_DIR
+    mount $part_dev $IMAGE_DIR
 
     # copy files
     cp $IMAGE_CONTENT/* $IMAGE_DIR
@@ -52,7 +70,10 @@ EOF
     umount $IMAGE_DIR
 
     # remove the partition mappings
-    kpartx -d $IMAGE_FILE
+    kpartx -d $loop_dev
+
+    # free loop device
+    losetup -d $loop_dev
 
 } >/dev/null
 
