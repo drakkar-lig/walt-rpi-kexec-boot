@@ -7,7 +7,7 @@ TMP_DIR=$(mktemp -d)
 SD_IMAGE="$TMP_DIR/$SD_IMAGE_BASENAME"
 
 echo -n "Generating the SD card image... "
-docker run --privileged "$DOCKER_RPI_BOOT_BUILDER_IMAGE" > $SD_IMAGE
+docker run --privileged -v /dev:/dev "$DOCKER_RPI_BOOT_BUILDER_IMAGE" > $SD_IMAGE
 echo "Done."
 
 echo "Saving it as a docker image... "
