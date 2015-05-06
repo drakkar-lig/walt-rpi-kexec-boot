@@ -1,7 +1,19 @@
 #!/bin/sh
+set -e
 
 # This script retrieve a kernel from NFS server
 # and run kexec to load the new kernel
+
+# redirect to console
+exec 0</dev/console 1>/dev/console 2>/dev/console
+
+on_error()
+{
+    echo "Dropping to a shell."
+    sh
+}
+
+trap '[ "$?" -eq 0 ] || on_error' EXIT
 
 cat > /root/retrieve-dhcp-options.sh << "END"
 #!/bin/sh

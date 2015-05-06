@@ -1,10 +1,11 @@
 #!/bin/sh
-
+set -e
 NFS_MOUNT=/tmp/nfs
 
 on_exit()
 {
     echo 'Error! Dropping to a shell.'
+    sh
 }
 
 prepare()
