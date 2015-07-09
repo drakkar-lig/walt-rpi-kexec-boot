@@ -6,6 +6,7 @@ LOC_BUILDROOT=/tmp/buildroot
 LOC_INITRD=/tmp/initrd
 BUILD_PACKAGES="git subversion make gcc g++ libncurses5-dev bzip2 wget cpio python unzip bc kpartx dosfstools"
 SVN_RPI_FIRMWARE_BOOT_FILES="https://github.com/raspberrypi/firmware/trunk/boot"
+INITRD2_BUSYBOX_APPLETS="cat chroot grep mkdir mount sh tr ls reboot sleep setsid ip usleep hostname"
 
 cd "$THIS_DIR"
 cp -p   builder_files/* $TMP_DIR
@@ -64,7 +65,7 @@ RUN chmod +x ./init
 RUN mkdir -p bin proc tmp/inmemory tmp/nfs
 WORKDIR $LOC_INITRD/initrd_fs/bin
 RUN cp $LOC_BUILDROOT/output/busybox .
-RUN for cmd in cat chroot grep mkdir mount sh tr; do ln -s busybox \$cmd; done
+RUN for cmd in $INITRD2_BUSYBOX_APPLETS; do ln -s busybox \$cmd; done
 WORKDIR $LOC_INITRD/initrd_fs
 RUN find . | cpio -H newc -o | gzip > ../initrd.cpio.gz
 
@@ -92,7 +93,7 @@ RUN rm -rf rootfs*
 
 # rpi firmware files setup
 # ------------------------
-RUN sed -i "s/root=.dev.mmcblk0p2/ip=dhcp/g" rpi-firmware/cmdline.txt
+RUN sed -i "s/root=.dev.mmcblk0p2/ip=none/g" rpi-firmware/cmdline.txt
 RUN sed -i "s/console=tty1/console=ttyAMA0,115200 console=tty1/g" rpi-firmware/cmdline.txt
 RUN echo "initramfs initramfs.cpio.gz 0x00a00000" >> rpi-firmware/config.txt
 # the repository is big because it's made of (versioned!) binary files.

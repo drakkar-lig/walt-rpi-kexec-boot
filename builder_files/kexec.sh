@@ -7,47 +7,82 @@ set -e
 # redirect to console
 exec 0</dev/console 1>/dev/console 2>/dev/console
 
+# in case of error we wait a few seconds.
+# If the user wants to start a shell or 
+# reboot the node, he must type <Enter>
+# within this small delay.
+# Otherwise we retry the script after this
+# delay.
+# The content of this script has to take into
+# account the fact that it be partially executed 
+# several times.
 on_error()
 {
-    echo "Dropping to a shell."
-    sh
+    echo 'An error occured.'
+    echo 'Retrying in 5s... (press <Enter> for a shell)'
+    read -t 5 && admin_sh || true
+    echo "Retrying..."
+    $0 $*
+}
+
+admin_sh()
+{
+    echo 'Starting a shell.'
+    echo '(the node will be rebooted on exit.)'
+    # see http://www.busybox.net/FAQ.html#job_control
+    setsid sh -c 'exec sh </dev/tty1 >/dev/tty1 2>&1' || sh
+    reboot -f
+}
+
+# given an hexadecimal string, put a \x before
+# each pair of hexadecimal characters, and 
+# evaluate to retrieve the hidden chars.
+hex2ascii()
+{
+    echo -en "$(
+        echo -n "$1" | sed -e 's/\(..\)/\\x\1/g'
+    )"
 }
 
 trap '[ "$?" -eq 0 ] || on_error' EXIT
 
+# prepare dhcp options retrieval
 cat > /root/retrieve-dhcp-options.sh << "END"
 #!/bin/sh
-set >> /root/env.txt
+set > /root/env.txt
 END
 chmod +x /root/retrieve-dhcp-options.sh
 
-cat > /root/hex2ascii.sh << "FIN"
-#!/bin/sh
-i=1
-while [ $i -lt ${#1} ];
+# wait for kernel to detect the network interface
+# and enable it
+while [ 1 ]
 do
-  tmp=$(echo $1 | cut -c$i,$((i+1)))
-  echo -en "\x$tmp"
-  i=$((i+2))
+    ip link set dev eth0 up 2>/dev/null && break || usleep 200000
 done
-FIN
-chmod +x /root/hex2ascii.sh
 
-# Retrieve DHCP options in /root/env.txt
-busybox udhcpc -s /root/retrieve-dhcp-options.sh
+# call DHCP client
+# -n & -q: exit if failed / succeeded (no background process kept)
+# -s: retrieve options in /root/env.txt
+udhcpc -nq -t 10 -s /root/retrieve-dhcp-options.sh
 
-NFS_SERVER_HEX=$(cat /root/env.txt | grep opt138 | cut -d"'" -f2)
-NFS_SERVER=$(/root/hex2ascii.sh $NFS_SERVER_HEX)
-NFS_FS_PATH_HEX=$(cat /root/env.txt | grep opt140 | cut -d"'" -f2)
-NFS_FS_PATH=$(/root/hex2ascii.sh $NFS_FS_PATH_HEX)
+# get and process dhcp option variables
+. /root/env.txt
+IP="$ip/$mask"
+NFS_SERVER=$(hex2ascii $opt138)
+NFS_FS_PATH=$(hex2ascii $opt140)
 
 CMDLINE=$(cat /proc/cmdline)
-ARGS="$CMDLINE nfs_server=$NFS_SERVER nfs_fs_path=$NFS_FS_PATH" 
+ARGS="$CMDLINE nfs_server=$NFS_SERVER nfs_fs_path=$NFS_FS_PATH"
+ARGS="$ARGS node_ip=$IP node_hostname=$hostname"
 
+# set ip if not done yet
+ip addr | grep -q $IP || ip addr add $IP dev eth0
+
+# mount the NFS filesystem if not done yet
 echo "Mounting NFS" 
 NFS_MOUNT=/nfs_mount
-mkdir $NFS_MOUNT
-mount $NFS_SERVER:$NFS_FS_PATH $NFS_MOUNT
+mkdir -p $NFS_MOUNT
+mountpoint -q $NFS_MOUNT || mount $NFS_SERVER:$NFS_FS_PATH $NFS_MOUNT
 
 # The kernel is at path /kernel of the filesystem.
 echo "Running kexec ..."
