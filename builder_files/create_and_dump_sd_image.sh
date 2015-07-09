@@ -1,10 +1,15 @@
 #!/bin/bash
 
+if [ "$1" == "--tar" ]
+then
+    MODE=tar
+else
+    MODE=sd
+fi
 TMP_DIR=$(mktemp -d)
 IMAGE_DIR=$TMP_DIR/img_dir
 IMAGE_FILE=$TMP_DIR/img.dd
 IMAGE_CONTENT=$TMP_DIR/content
-mkdir $IMAGE_DIR $IMAGE_CONTENT
 
 part1()
 {
@@ -19,10 +24,17 @@ wait_for_device()
     done
 }
 
-{
-    # select the files we want in the image
-    cp {zImage,initramfs.cpio.gz,rpi-firmware/*.txt,boot_files/*} $IMAGE_CONTENT
+# select the files we want in the image
+mkdir $IMAGE_CONTENT
+cp {zImage,initramfs.cpio.gz,rpi-firmware/*.txt,boot_files/*} \
+    $IMAGE_CONTENT >/dev/null
 
+if [ "$MODE" = "tar" ]
+then
+    cd $IMAGE_CONTENT
+    tar cfz - .
+else
+{
     # we want to create a small image.
     # let's estimate the needed image size with 'du' and multiply it by 4/3.
     needed_size_megabytes=$(set -- $(du -sm $IMAGE_CONTENT); echo $((4*$1/3)))
@@ -61,6 +73,7 @@ EOF
     mkfs -t vfat $part_dev
 
     # mount the partition
+    mkdir $IMAGE_DIR
     mount $part_dev $IMAGE_DIR
 
     # copy files
@@ -77,8 +90,9 @@ EOF
 
 } >/dev/null
 
-# dump the image
-gzip --stdout $IMAGE_FILE
+    # dump the image
+    gzip --stdout $IMAGE_FILE
+fi
 
 # clean up
 rm -rf $TMP_DIR
