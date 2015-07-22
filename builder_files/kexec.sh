@@ -79,13 +79,17 @@ ARGS="$ARGS node_ip=$IP node_hostname=$hostname"
 ip addr | grep -q $IP || ip addr add $IP dev eth0
 
 # mount the NFS filesystem if not done yet
-echo "Mounting NFS" 
+echo "Mounting NFS"
 NFS_MOUNT=/nfs_mount
 mkdir -p $NFS_MOUNT
 mountpoint -q $NFS_MOUNT || mount $NFS_SERVER:$NFS_FS_PATH $NFS_MOUNT
 
 # The kernel is at path /kernel of the filesystem.
 echo "Running kexec ..."
+# load the new kernel
 kexec -l $NFS_MOUNT/kernel --initrd=/root/initrd.cpio.gz --append="$ARGS"
+# we can unmount the NFS share now before leaving this kernel
+umount $NFS_MOUNT
+# start the new kernel
 kexec -e
 
