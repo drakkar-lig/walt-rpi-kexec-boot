@@ -4,9 +4,18 @@ NFS_MOUNT=/tmp/nfs
 
 on_exit()
 {
-    echo 'Error! Dropping to a shell.'
+    echo 'An error occured.'
+    echo 'Rebooting in 5s... (press <Enter> for a shell)'
+    read -t 5 && admin_sh || reboot -f
+}
+
+admin_sh()
+{
+    echo 'Starting a shell.'
+    echo '(the node will be rebooted on exit.)'
     # see http://www.busybox.net/FAQ.html#job_control
     setsid sh -c 'exec sh </dev/tty1 >/dev/tty1 2>&1' || sh
+    reboot -f
 }
 
 prepare()
