@@ -40,7 +40,10 @@ mount_nfs()
     eval $(cat /proc/cmdline | tr ' ' "\n" | grep nfs_fs_path)
     echo "NFS server IP : $nfs_server" 
     echo "NFS file system path : $nfs_fs_path"
-    mount -o ro,nolock -t nfs $nfs_server:$nfs_fs_path $NFS_MOUNT
+    # note: nolock is mandatory for use in the minimal
+    # system (no portmap)
+    mount -o ro,nolock,nocto,noatime,nodiratime -t nfs \
+                $nfs_server:$nfs_fs_path $NFS_MOUNT
 }
 
 # monitor the nfs mount and reboot the node if nfs connection

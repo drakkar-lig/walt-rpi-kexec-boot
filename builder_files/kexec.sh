@@ -7,22 +7,42 @@ set -e
 # redirect to console
 exec 0</dev/console 1>/dev/console 2>/dev/console
 
+if [ "$1" = "" ]
+then
+    retries_left=2
+else
+    retries_left=$1
+fi
+
 # in case of error we wait a few seconds.
-# If the user wants to start a shell or 
+# If the user wants to start a shell or
 # reboot the node, he must type <Enter>
 # within this small delay.
 # Otherwise we retry the script after this
 # delay.
 # The content of this script has to take into
-# account the fact that it be partially executed 
+# account the fact that it may be partially executed
 # several times.
 on_error()
 {
     echo 'An error occured.'
-    echo 'Retrying in 5s... (press <Enter> for a shell)'
+    if [ $retries_left -gt 0 ]
+    then
+        echo -n "Retrying in 5s... "
+        echo "($retries_left retry(ies) before rebooting)"
+    else
+        echo "REBOOTING in 5s... "
+    fi
+    echo '-> or press <Enter> now for a shell'
     read -t 5 && admin_sh || true
-    echo "Retrying..."
-    $0 $*
+    if [ $retries_left -gt 0 ]
+    then
+        echo "Retrying..."
+        $0 $((retries_left-1))
+    else
+        echo "Too many attemps. Rebooting..."
+        reboot -f
+    fi
 }
 
 admin_sh()
@@ -35,7 +55,7 @@ admin_sh()
 }
 
 # given an hexadecimal string, put a \x before
-# each pair of hexadecimal characters, and 
+# each pair of hexadecimal characters, and
 # evaluate to retrieve the hidden chars.
 hex2ascii()
 {
