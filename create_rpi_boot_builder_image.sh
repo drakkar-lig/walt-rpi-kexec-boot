@@ -95,6 +95,7 @@ RUN rm -rf rootfs*
 # ------------------------
 RUN sed -i "s/root=.dev.mmcblk0p2/ip=none/g" rpi-firmware/cmdline.txt
 RUN sed -i "s/console=tty1/console=ttyAMA0,115200 console=tty1/g" rpi-firmware/cmdline.txt
+RUN echo "disable_splash=1" >> rpi-firmware/config.txt
 RUN echo "initramfs initramfs.cpio.gz 0x00a00000" >> rpi-firmware/config.txt
 # the repository is big because it's made of (versioned!) binary files.
 # although it's on github, we use svn instead of git, because it allows us to download only a 
