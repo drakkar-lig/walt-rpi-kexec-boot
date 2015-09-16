@@ -9,7 +9,7 @@ prepare()
 }
 
 # we called the DNS in the 1st boot stage and saved the ip
-# and hostname as kernel arguments (see kexec.sh).
+# and hostname as kernel arguments (see boot1/boot.sh).
 set_ip()
 {   
     eval "$(cat /proc/cmdline | grep -o 'node_ip=[^ ]*')"

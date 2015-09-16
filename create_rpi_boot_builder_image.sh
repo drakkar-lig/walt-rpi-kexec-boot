@@ -9,7 +9,7 @@ SVN_RPI_FIRMWARE_BOOT_FILES="https://github.com/raspberrypi/firmware/trunk/boot"
 INITRD2_BUSYBOX_APPLETS="cat chroot grep mkdir mount sh tr ls reboot sleep setsid ip usleep hostname timeout"
 
 cd "$THIS_DIR"
-cp -p   builder_files/* $TMP_DIR
+cp -rp   builder_files/* $TMP_DIR
 
 cd $TMP_DIR
 
@@ -61,9 +61,9 @@ RUN make && \
 
 RUN mkdir -p $LOC_INITRD/initrd_fs
 WORKDIR $LOC_INITRD/initrd_fs
-ADD union_init.sh $LOC_INITRD/initrd_fs/init
-ADD union_init_prepare.sh $LOC_INITRD/initrd_fs/union_init_prepare.sh
-RUN chmod +x ./init*
+ADD boot2/init.sh $LOC_INITRD/initrd_fs/init
+ADD boot2/prepare.sh $LOC_INITRD/initrd_fs/prepare.sh
+RUN chmod +x ./init ./prepare.sh
 RUN mkdir -p bin proc tmp/inmemory tmp/nfs
 WORKDIR $LOC_INITRD/initrd_fs/bin
 RUN cp $LOC_BUILDROOT/output/busybox .
@@ -82,13 +82,13 @@ RUN find . | cpio -H newc -o | gzip > ../initrd.cpio.gz
 RUN mkdir $LOC_BUILDROOT/output/images/rootfs
 WORKDIR $LOC_BUILDROOT/output/images/rootfs
 RUN cpio -id < ../rootfs.cpio
-ADD kexec.sh kexec_prepare.sh $LOC_BUILDROOT/output/images/rootfs/root/
+ADD boot1/boot.sh boot1/prepare.sh $LOC_BUILDROOT/output/images/rootfs/root/
 RUN chmod +x root/*.sh
 RUN cp $LOC_INITRD/initrd.cpio.gz root/
 # Disable login prompt
 RUN sed -i "s/^tty/#tty/g" etc/inittab
-# Run kexec script on boot
-RUN echo "::once:/root/kexec.sh" >> etc/inittab
+# Run boot1/boot.sh script on boot
+RUN echo "::once:/root/boot.sh" >> etc/inittab
 RUN find . | cpio -H newc -o | gzip > ../initramfs.cpio.gz
 WORKDIR $LOC_BUILDROOT/output/images
 RUN rm -rf rootfs*
@@ -119,7 +119,7 @@ result=$?
 echo "TODO: improve all this."
 echo "- install a cross compiler through package management and use it in buildroot instead of compiling it"
 echo "- check if we cannot use a package manager -installed static busybox and build the 2 initrds manually (we would need kexec and portmap also...)"
-echo "- if we could use the same kernel as in the rpi-debian image, we could adapt kexec.sh for the case where the 2nd kernel is the same and boot faster"
+echo "- if we could use the same kernel as in the rpi-debian image, we could adapt boot1/boot.sh for the case where the 2nd kernel is the same and boot faster"
 
 rm -rf $TMP_DIR
 

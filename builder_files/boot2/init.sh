@@ -19,10 +19,10 @@ run_original_init()
     exec chroot . sbin/init
 }
 
-# try to run /union_init_prepare.sh
+# try to run /boot2/prepare.sh
 while [ 1 ]
 do
-    timeout -t 10 /union_init_prepare.sh && break || true
+    timeout -t 10 /prepare.sh && break || true
     echo 'An error occured.'
     echo 'Rebooting in 5s... (press <Enter> for a shell)'
     read -t 5 && admin_sh || reboot -f

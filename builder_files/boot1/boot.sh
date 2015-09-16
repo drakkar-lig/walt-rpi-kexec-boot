@@ -16,11 +16,11 @@ admin_sh()
     reboot -f
 }
 
-# try to run /root/kexec_prepare.sh
+# try to run /root/boot1/prepare.sh
 retries_left=2
 while [ 1 ]
 do
-    timeout -t 45 /root/kexec_prepare.sh && break || true
+    timeout -t 45 /root/boot1/prepare.sh && break || true
     echo 'An error occured.'
     if [ $retries_left -gt 0 ]
     then
