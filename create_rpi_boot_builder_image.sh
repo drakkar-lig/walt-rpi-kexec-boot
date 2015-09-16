@@ -35,6 +35,7 @@ ADD rpi_boot_defconfig $LOC_BUILDROOT/.config
 # busybox config
 RUN sed -i -e 's/.*CONFIG_STATIC.*/CONFIG_STATIC=y/' package/busybox/busybox.config
 RUN sed -i -e 's/.*CONFIG_TIMEOUT.*/CONFIG_TIMEOUT=y/' package/busybox/busybox.config
+RUN sed -i -e 's/.*CONFIG_NC.*/CONFIG_NC=y/' package/busybox/busybox.config
 
 # linux kernel config
 ADD walt_bcmrpi_linux.config $LOC_BUILDROOT/walt_bcmrpi_linux.config
