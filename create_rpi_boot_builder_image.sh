@@ -6,7 +6,7 @@ LOC_BUILDROOT=/tmp/buildroot
 LOC_INITRD=/tmp/initrd
 BUILD_PACKAGES="git subversion make gcc g++ libncurses5-dev bzip2 wget cpio python unzip bc kpartx dosfstools"
 SVN_RPI_FIRMWARE_BOOT_FILES="https://github.com/raspberrypi/firmware/trunk/boot"
-INITRD2_BUSYBOX_APPLETS="cat chroot grep mkdir mount sh tr ls reboot sleep setsid ip usleep hostname"
+INITRD2_BUSYBOX_APPLETS="cat chroot grep mkdir mount sh tr ls reboot sleep setsid ip usleep hostname timeout"
 
 cd "$THIS_DIR"
 cp -p   builder_files/* $TMP_DIR
@@ -34,6 +34,7 @@ ADD rpi_boot_defconfig $LOC_BUILDROOT/.config
 
 # busybox config
 RUN sed -i -e 's/.*CONFIG_STATIC.*/CONFIG_STATIC=y/' package/busybox/busybox.config
+RUN sed -i -e 's/.*CONFIG_TIMEOUT.*/CONFIG_TIMEOUT=y/' package/busybox/busybox.config
 
 # linux kernel config
 ADD walt_bcmrpi_linux.config $LOC_BUILDROOT/walt_bcmrpi_linux.config
@@ -61,7 +62,8 @@ RUN make && \
 RUN mkdir -p $LOC_INITRD/initrd_fs
 WORKDIR $LOC_INITRD/initrd_fs
 ADD union_init.sh $LOC_INITRD/initrd_fs/init
-RUN chmod +x ./init
+ADD union_init_prepare.sh $LOC_INITRD/initrd_fs/union_init_prepare.sh
+RUN chmod +x ./init*
 RUN mkdir -p bin proc tmp/inmemory tmp/nfs
 WORKDIR $LOC_INITRD/initrd_fs/bin
 RUN cp $LOC_BUILDROOT/output/busybox .
@@ -80,8 +82,8 @@ RUN find . | cpio -H newc -o | gzip > ../initrd.cpio.gz
 RUN mkdir $LOC_BUILDROOT/output/images/rootfs
 WORKDIR $LOC_BUILDROOT/output/images/rootfs
 RUN cpio -id < ../rootfs.cpio
-ADD kexec.sh $LOC_BUILDROOT/output/images/rootfs/root/
-RUN chmod +x root/kexec.sh
+ADD kexec.sh kexec_prepare.sh $LOC_BUILDROOT/output/images/rootfs/root/
+RUN chmod +x root/*.sh
 RUN cp $LOC_INITRD/initrd.cpio.gz root/
 # Disable login prompt
 RUN sed -i "s/^tty/#tty/g" etc/inittab
