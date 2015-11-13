@@ -96,7 +96,7 @@ RUN rm -rf rootfs*
 
 # rpi firmware files setup
 # ------------------------
-RUN sed -i "s/root=.dev.mmcblk0p2/ip=none/g" rpi-firmware/cmdline.txt
+RUN sed -i "s/root=.dev.mmcblk0p2/ip=none panic=5/g" rpi-firmware/cmdline.txt
 RUN sed -i "s/console=tty1/console=ttyAMA0,115200 console=tty1/g" rpi-firmware/cmdline.txt
 RUN echo "disable_splash=1" >> rpi-firmware/config.txt
 RUN echo "initramfs initramfs.cpio.gz 0x00a00000" >> rpi-firmware/config.txt
