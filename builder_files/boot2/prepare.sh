@@ -55,8 +55,8 @@ start_nfs_mount_watchdog()
     cd $NFS_MOUNT
     while [ 1 ]
     do
-	ls . >/dev/null || reboot -f
-	sleep 5
+        timeout -t 2 ls . >/dev/null || reboot -f
+        sleep 5
     done &
 }
 
