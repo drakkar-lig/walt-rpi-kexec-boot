@@ -30,18 +30,18 @@ RUN git checkout $RPI_BOOT_BUIDROOT_GIT_TAG
 RUN sed -i "s/KEXEC_VERSION =.*/KEXEC_VERSION = $RPI_BOOT_KEXEC_VERSION/g" package/kexec/kexec.mk
 
 # buildroot config
-ADD rpi_boot_defconfig $LOC_BUILDROOT/.config
+ADD buildroot_rpi_defconfig $LOC_BUILDROOT/configs/
 
 # busybox config
 RUN sed -i -e 's/.*CONFIG_STATIC.*/CONFIG_STATIC=y/' package/busybox/busybox.config
 RUN sed -i -e 's/.*CONFIG_TIMEOUT.*/CONFIG_TIMEOUT=y/' package/busybox/busybox.config
 RUN sed -i -e 's/.*CONFIG_NC.*/CONFIG_NC=y/' package/busybox/busybox.config
 
+# generate buildroot .config with unspecified options to their defaults
+RUN make buildroot_rpi_defconfig
+
 # linux kernel config
 ADD walt_bcmrpi_linux.config $LOC_BUILDROOT/walt_bcmrpi_linux.config
-
-# set unspecified options to their defaults
-RUN make olddefconfig
 
 # run.
 # the build directory will be eating much disk space at the end
@@ -82,9 +82,10 @@ RUN find . | cpio -H newc -o | gzip > ../initrd.cpio.gz
 
 RUN mkdir $LOC_BUILDROOT/output/images/rootfs
 WORKDIR $LOC_BUILDROOT/output/images/rootfs
-RUN cpio -id < ../rootfs.cpio
+RUN tar xf ../rootfs.tar
+ADD boot1/init $LOC_BUILDROOT/output/images/rootfs/
 ADD boot1/boot.sh boot1/prepare.sh $LOC_BUILDROOT/output/images/rootfs/root/
-RUN chmod +x root/*.sh
+RUN chmod +x init root/*.sh
 RUN cp $LOC_INITRD/initrd.cpio.gz root/
 # Disable login prompt
 RUN sed -i "s/^tty/#tty/g" etc/inittab
@@ -96,10 +97,9 @@ RUN rm -rf rootfs*
 
 # rpi firmware files setup
 # ------------------------
-RUN sed -i "s/root=.dev.mmcblk0p2/ip=none panic=5/g" rpi-firmware/cmdline.txt
-RUN sed -i "s/console=tty1/console=ttyAMA0,115200 console=tty1/g" rpi-firmware/cmdline.txt
+RUN echo "console=ttyAMA0,115200 console=tty1 ip=none panic=5" > rpi-firmware/cmdline.txt
 RUN echo "disable_splash=1" >> rpi-firmware/config.txt
-RUN echo "initramfs initramfs.cpio.gz 0x00a00000" >> rpi-firmware/config.txt
+RUN echo "initramfs initramfs.cpio.gz" >> rpi-firmware/config.txt
 # the repository is big because it's made of (versioned!) binary files.
 # although it's on github, we use svn instead of git, because it allows us to download only a 
 # subdirectory of it.

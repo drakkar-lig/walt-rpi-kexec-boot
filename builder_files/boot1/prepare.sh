@@ -71,7 +71,7 @@ fi
 echo "Mounting NFS"
 NFS_MOUNT=/nfs_mount
 mkdir -p $NFS_MOUNT
-mountpoint -q $NFS_MOUNT || mount $WALT_SERVER:$NFS_FS_PATH $NFS_MOUNT
+mountpoint -q $NFS_MOUNT || mount -o nolock $WALT_SERVER:$NFS_FS_PATH $NFS_MOUNT
 
 # The kernel is at path /kernel of the filesystem.
 echo "Running kexec ..."
@@ -79,7 +79,7 @@ CMDLINE=$(cat /proc/cmdline)
 ARGS="$CMDLINE nfs_server=$WALT_SERVER nfs_fs_path=$NFS_FS_PATH"
 ARGS="$ARGS node_ip=$IP node_hostname=$hostname"
 # load the new kernel
-kexec -l $NFS_MOUNT/kernel --initrd=/root/initrd.cpio.gz --append="$ARGS"
+kexec -l $NFS_MOUNT/kernel --atags --initrd=/root/initrd.cpio.gz --append="$ARGS"
 # we can unmount the NFS share now before leaving this kernel
 umount $NFS_MOUNT
 
